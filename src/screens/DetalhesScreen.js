@@ -8,7 +8,7 @@ import {
   Alert,
 } from 'react-native';
 import { getUsuarioPorId, deletarPost } from '../services/api';
-import { salvar, ler, lerMesmoExpirado, CHAVES } from '../storage/cache';
+import { salvar, lerItemCompleto, lerMesmoExpirado, CHAVES } from '../storage/cache';
 import LoadingIndicator from '../components/LoadingIndicator';
 
 export default function DetalhesScreen({ navigation, route }) {
@@ -29,10 +29,10 @@ export default function DetalhesScreen({ navigation, route }) {
     async function carregarDados() {
       try {
         const chavePost = CHAVES.POST(postParams.id);
+        const cachePost = await lerItemCompleto(chavePost);
         let postExibido = null;
-        const cachePost = await ler(chavePost);
-        if (cachePost) {
-          postExibido = cachePost;
+        if (cachePost && cachePost.dados) {
+          postExibido = cachePost.dados;
         } else {
           postExibido = postParams;
           await salvar(chavePost, postExibido);
@@ -40,9 +40,9 @@ export default function DetalhesScreen({ navigation, route }) {
         setPost(postExibido);
 
         const chaveUsuario = CHAVES.USUARIO(postExibido.userId);
-        const cacheUsuario = await ler(chaveUsuario);
-        if (cacheUsuario) {
-          setUsuario(cacheUsuario);
+        const cacheUsuario = await lerItemCompleto(chaveUsuario);
+        if (cacheUsuario && cacheUsuario.dados) {
+          setUsuario(cacheUsuario.dados);
           setLoading(false);
           return;
         }
@@ -52,15 +52,15 @@ export default function DetalhesScreen({ navigation, route }) {
       } catch (e) {
         const chavePost = CHAVES.POST(postParams.id);
         const cacheAntigoPost = await lerMesmoExpirado(chavePost);
-        if (cacheAntigoPost) {
-          setPost(cacheAntigoPost);
+        if (cacheAntigoPost && cacheAntigoPost.dados) {
+          setPost(cacheAntigoPost.dados);
         } else {
           setPost(postParams);
         }
         const chaveUsuario = CHAVES.USUARIO(postParams.userId);
         const cacheAntigoUsuario = await lerMesmoExpirado(chaveUsuario);
-        if (cacheAntigoUsuario) {
-          setUsuario(cacheAntigoUsuario);
+        if (cacheAntigoUsuario && cacheAntigoUsuario.dados) {
+          setUsuario(cacheAntigoUsuario.dados);
           setErroAutor(null);
         } else {
           setErroAutor('Não foi possível carregar as informações do autor.');
